@@ -4,8 +4,8 @@
 
 
 float Gamma = 5.0/3.0;
-int N = 500;
-double T = 0.7;
+int N = 1000;
+double T = 1.0;
 
 
 // primitive variables to conserved variables
@@ -39,7 +39,8 @@ void SoundSpeedMax( double (*U)[N], double *s_max) {
     for (int i=0;i<N;i++){
         p[i] = ComputePressure(U[0][i],U[1][i],U[2][i]);
         s[i] = sqrt(Gamma*p[i]/U[0][i]);
-        s[i] += U[1][i]/U[0][i];
+        if (U[1][i]/U[0][i]>=0)  s[i] += U[1][i]/U[0][i];
+        else  s[i] -= U[1][i]/U[0][i];
     }
     *s_max = 0.;
     for (int i=0;i<N;i++){
@@ -86,11 +87,11 @@ void HLLC_Riemann_Solver ( double (*U_L)[N], double (*U_R)[N], double(*HLLC_flux
         
         //step 2: wave speed estimate
         if (p_star[i]>p_L[i]){
-            q_L[i] = sqrt(1+(Gamma+1)*p_star[i]/(p_L[i]-1)/2.0/Gamma);
+            q_L[i] = sqrt(1+(Gamma+1)*(p_star[i]/p_L[i]-1)/2.0/Gamma);
         }
         else  q_L[i]=1.0;
         if (p_star[i]>p_R[i]){
-            q_R[i] = sqrt(1+(Gamma+1)*p_star[i]/(p_R[i]-1)/2.0/Gamma);
+            q_R[i] = sqrt(1+(Gamma+1)*(p_star[i]/p_R[i]-1)/2.0/Gamma);
         }
         else  q_R[i]=1.0;
         
@@ -114,11 +115,6 @@ void HLLC_Riemann_Solver ( double (*U_L)[N], double (*U_R)[N], double(*HLLC_flux
             HLLC_flux[1][i] = F_L[1][i];
             HLLC_flux[2][i] = F_L[2][i];
         }
-        else if (S_R[i]<=0){
-            HLLC_flux[0][i] = F_R[0][i];
-            HLLC_flux[1][i] = F_R[1][i];
-            HLLC_flux[2][i] = F_R[2][i];
-        }
         else if (S_L[i]<=0 && S_star[i]>=0){
             HLLC_flux[0][i] = F_star_L[0][i];
             HLLC_flux[1][i] = F_star_L[1][i];
@@ -128,6 +124,11 @@ void HLLC_Riemann_Solver ( double (*U_L)[N], double (*U_R)[N], double(*HLLC_flux
             HLLC_flux[0][i] = F_star_R[0][i];
             HLLC_flux[1][i] = F_star_R[1][i];
             HLLC_flux[2][i] = F_star_R[2][i];
+        }
+        else if (S_R[i]<=0){
+            HLLC_flux[0][i] = F_R[0][i];
+            HLLC_flux[1][i] = F_R[1][i];
+            HLLC_flux[2][i] = F_R[2][i];
         }
     }
     free(F_L);
@@ -146,14 +147,14 @@ int main(int argc, const char * argv[]) {
     double (*U_L)[N] = (double(*)[N])malloc(3*sizeof(*U_L));
     double (*U_R)[N] = (double(*)[N])malloc(3*sizeof(*U_R));
     
-    double dx = 1.0/64.0;
+    double dx = 1.0/128.0;
     double dt;
     double t = 0.;
     double S_max = 6.29;
     
     //save data into file
     FILE * data_ptr;
-    data_ptr = fopen("/Users/mac/Desktop/data_evol_3.txt", "w");
+    data_ptr = fopen("/Users/mac/Desktop/data_evol_test2.txt", "w");
     if (data_ptr==0)  return 0;
     
     //set the initial condition
@@ -249,3 +250,4 @@ int main(int argc, const char * argv[]) {
     
     return 0;
 }
+
